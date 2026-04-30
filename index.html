@@ -1,22 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Chat App</title>
+  <title>Chat</title>
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
 <div id="top">
-  <button onclick="switchRoom('general')">
-    General <span id="unread-general"></span>
-  </button>
-
-  <button onclick="switchRoom('school')">
-    School <span id="unread-school"></span>
-  </button>
-
-  <button onclick="changeUsername()">Name</button>
+  <button id="btnGeneral">General <span id="unread-general"></span></button>
+  <button id="btnSchool">School <span id="unread-school"></span></button>
+  <button id="btnName">Name</button>
 </div>
 
 <div id="layout">
@@ -32,7 +26,7 @@
 
     <div id="inputArea">
       <input id="messageInput" placeholder="Message..." />
-      <button onclick="sendMessage()">Send</button>
+      <button id="sendBtn">Send</button>
     </div>
   </div>
 
@@ -42,8 +36,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
-<script src="script.js"></script>
+<script src="script.js" defer></script>
 
 </body>
 </html>
-
