@@ -1,73 +1,45 @@
 // ===== Identity =====
 let username = localStorage.getItem("chatName");
-let userId = localStorage.getItem("chatId");
 
-if (!userId) {
-  userId = crypto.randomUUID();
-  localStorage.setItem("chatId", userId);
-}
-
-if (!username) setUsername();
-
-// ===== System =====
-const chatBox = document.getElementById("chat");
-const roomSelect = document.getElementById("room");
-const input = document.getElementById("msgInput");
-const channel = new BroadcastChannel("chat_app");
-
-// ===== Username =====
 function setUsername() {
   const name = prompt("Enter username:");
   username = (name && name.trim()) ? name.trim() : "Guest";
   localStorage.setItem("chatName", username);
 }
 
-function changeUsername() {
-  setUsername();
-}
+// ensure username exists
+if (!username) setUsername();
 
-// ===== Color system (deterministic per userId) =====
-function colorFromId(id) {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = id.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return `hsl(${hash % 360}, 70%, 60%)`;
-}
+// ===== Elements =====
+const chatBox = document.getElementById("chat");
+const roomSelect = document.getElementById("room");
+const input = document.getElementById("msgInput");
+const channel = new BroadcastChannel("chat_app");
 
 // ===== Storage =====
-function getMessages(room) {
+function getMsgs(room) {
   return JSON.parse(localStorage.getItem(room) || "[]");
 }
 
-function saveMessages(room, msgs) {
+function saveMsgs(room, msgs) {
   localStorage.setItem(room, JSON.stringify(msgs));
 }
 
 // ===== Render =====
-function loadMessages(room) {
+function load(room) {
   chatBox.innerHTML = "";
-  const msgs = getMessages(room);
+  const msgs = getMsgs(room);
 
   msgs.forEach(m => {
     const div = document.createElement("div");
-    div.className = "msg";
-
-    const color = colorFromId(m.userId);
-
-    div.innerHTML = `
-      <span class="user" style="color:${color}">
-        ${m.user}
-      </span>: ${m.text}
-    `;
-
+    div.innerHTML = `<b>${m.user}:</b> ${m.text}`;
     chatBox.appendChild(div);
   });
 
   chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-// ===== Send =====
+// ===== Send (GLOBAL FUNCTION FIXED) =====
 function sendMsg() {
   const text = input.value.trim();
   if (!text) return;
@@ -75,54 +47,54 @@ function sendMsg() {
   const room = roomSelect.value;
 
   const msg = {
-    user,
-    userId,
+    user: username,
     text,
     time: Date.now()
   };
 
-  const msgs = getMessages(room);
+  const msgs = getMsgs(room);
   msgs.push(msg);
-  saveMessages(room, msgs);
+  saveMsgs(room, msgs);
 
   channel.postMessage({ room, msg });
 
   input.value = "";
-  loadMessages(room);
+  load(room);
 }
 
-// ===== Clear room =====
-function clearRoom() {
-  const room = roomSelect.value;
-  localStorage.removeItem(room);
-  loadMessages(room);
+// expose to HTML onclick
+window.sendMsg = sendMsg;
+
+// ===== Username change (GLOBAL FIX) =====
+function changeUsername() {
+  setUsername();
+  load(roomSelect.value);
 }
+window.changeUsername = changeUsername;
 
-// ===== Sync (NO DUPLICATES FIXED) =====
-channel.onmessage = (event) => {
-  const { room, msg } = event.data;
+// ===== Sync (no duplicates) =====
+channel.onmessage = (e) => {
+  const { room, msg } = e.data;
 
-  const msgs = getMessages(room);
+  const msgs = getMsgs(room);
 
   const exists = msgs.some(m =>
-    m.userId === msg.userId &&
-    m.text === msg.text &&
-    m.time === msg.time
+    m.time === msg.time &&
+    m.user === msg.user &&
+    m.text === msg.text
   );
 
   if (!exists) {
     msgs.push(msg);
-    saveMessages(room, msgs);
+    saveMsgs(room, msgs);
   }
 
-  if (room === roomSelect.value) {
-    loadMessages(room);
-  }
+  if (room === roomSelect.value) load(room);
 };
 
-// ===== Room switching =====
+// ===== Room switch =====
 roomSelect.addEventListener("change", () => {
-  loadMessages(roomSelect.value);
+  load(roomSelect.value);
 });
 
 // ===== Enter key =====
@@ -130,14 +102,5 @@ input.addEventListener("keydown", (e) => {
   if (e.key === "Enter") sendMsg();
 });
 
-// ===== Status indicator =====
-window.addEventListener("focus", () => {
-  document.getElementById("status").textContent = "● Online";
-});
-
-window.addEventListener("blur", () => {
-  document.getElementById("status").textContent = "● Away";
-});
-
 // ===== Init =====
-loadMessages("general");
+load("general");
