@@ -71,14 +71,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ---------------- LISTEN MESSAGES ----------------
 function listenMessages() {
+  const debug = document.getElementById("debug");
+  debug.innerText = "Listening to: messages/" + currentRoom;
+
   const ref = firebase.database().ref("messages/" + currentRoom);
 
   ref.off();
 
   ref.on("child_added", (snap) => {
-    console.log("🔥 FIRED", snap.val());
-
     const msg = snap.val();
+
+    debug.innerText += "\n🔥 RECEIVED: " + JSON.stringify(msg);
 
     const div = document.createElement("div");
     div.innerText = msg.user + ": " + msg.text;
