@@ -1,12 +1,5 @@
 <!DOCTYPE html>
 
-let username = localStorage.getItem("chatName");
-
-if (!username) {
-  username = prompt("Enter a username:");
-  if (!username) username = "Guest";
-  localStorage.setItem("chatName", username);
-}
 
 <html>
 <head>
@@ -55,6 +48,14 @@ select, input, button {
   display: flex;
   padding: 10px;
   background: #1c1c1c;
+}
+
+  let username = localStorage.getItem("chatName");
+
+if (!username) {
+  username = prompt("Enter a username:");
+  if (!username) username = "Guest";
+  localStorage.setItem("chatName", username);
 }
 
 #msgInput {
