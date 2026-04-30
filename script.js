@@ -1,10 +1,20 @@
 // ===== Username System =====
 let username = localStorage.getItem("chatName");
 
+function setUsername() {
+  const input = prompt("Enter a username:");
+  if (input && input.trim().length > 0) {
+    username = input.trim();
+    localStorage.setItem("chatName", username);
+  } else {
+    username = "Guest";
+    localStorage.setItem("chatName", username);
+  }
+}
+
+// If no username exists, ask once
 if (!username) {
-  username = prompt("Enter username:");
-  if (!username) username = "Guest";
-  localStorage.setItem("chatName", username);
+  setUsername();
 }
 
 // ===== Setup =====
@@ -13,7 +23,27 @@ const roomSelect = document.getElementById("room");
 const input = document.getElementById("msgInput");
 
 // BroadcastChannel (sync between tabs)
-const channel = new BroadcastChannel("chat_app");
+channel.onmessage = (event) => {
+  const { room, msg } = event.data;
+
+  // ONLY add if it doesn't already exist
+  const msgs = JSON.parse(localStorage.getItem(room) || "[]");
+
+  const alreadyExists = msgs.some(m =>
+    m.user === msg.user &&
+    m.text === msg.text &&
+    m.time === msg.time
+  );
+
+  if (!alreadyExists) {
+    msgs.push(msg);
+    localStorage.setItem(room, JSON.stringify(msgs));
+  }
+
+  if (room === roomSelect.value) {
+    loadMessages(room);
+  }
+};
 
 // Load messages
 function loadMessages(room) {
