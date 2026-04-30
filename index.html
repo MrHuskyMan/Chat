@@ -1,168 +1,49 @@
 <!DOCTYPE html>
-
-
 <html>
 <head>
-<meta charset="utf-8">
-<title>TripleC Chat</title>
-
-<style>
-body {
-  margin: 0;
-  font-family: Arial;
-  background: #0f0f0f;
-  color: white;
-}
-
-#topbar {
-  background: #1c1c1c;
-  padding: 10px;
-  display: flex;
-  justify-content: space-between;
-}
-
-select, input, button {
-  padding: 8px;
-  margin: 4px;
-}
-
-#chat {
-  height: 80vh;
-  overflow-y: auto;
-  padding: 10px;
-}
-
-.msg {
-  margin: 6px 0;
-  padding: 8px;
-  background: #222;
-  border-radius: 8px;
-}
-
-.name {
-  font-weight: bold;
-  color: #4da3ff;
-}
-
-#inputBar {
-  display: flex;
-  padding: 10px;
-  background: #1c1c1c;
-}
-
-  let username = localStorage.getItem("chatName");
-
-if (!username) {
-  username = prompt("Enter a username:");
-  if (!username) username = "Guest";
-  localStorage.setItem("chatName", username);
-}
-
-#msgInput {
-  flex: 1;
-}
-</style>
-
+  <title>Chat App</title>
+  <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-<div id="topbar">
-  <div>
-    Room:
-    <select id="room">
-      <option>General</option>
-      <option>School</option>
-    </select>
-  </div>
-  <div id="userDisplay"></div>
+<div id="top">
+  <button onclick="switchRoom('general')">
+    General <span id="unread-general"></span>
+  </button>
+
+  <button onclick="switchRoom('school')">
+    School <span id="unread-school"></span>
+  </button>
+
+  <button onclick="changeUsername()">Name</button>
 </div>
 
-<div id="chat"></div>
+<div id="layout">
 
-<div id="inputBar">
-  <input id="msgInput" placeholder="Type message...">
-  <button onclick="sendMsg()">Send</button>
+  <div id="sidebar">
+    <b>Online</b>
+    <div id="users"></div>
+  </div>
+
+  <div id="chatContainer">
+    <div id="chat"></div>
+    <div id="typing"></div>
+
+    <div id="inputArea">
+      <input id="messageInput" placeholder="Message..." />
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
 </div>
 
 <!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
-<script>
-// 🔧 PUT YOUR FIREBASE CONFIG HERE
-const firebaseConfig = {
-  apiKey: "AIzaSyDbgXEyQCcb9EzWf2JDI25V29VyfSQ7Tdg",
-  authDomain: "chat-4dbb4.firebaseapp.com",
-  projectId: "chat-4dbb4",
-  storageBucket: "chat-4dbb4.firebasestorage.app",
-  messagingSenderId: "109228240521",
-  appId: "1:109228240521:web:907ed25d4f179e7a032058",
-  measurementId: "G-QV7RDTG550"
-};
-
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-
-// Username (simple prompt)
-function changeUsername() {
-  const newName = prompt("New username:", username);
-
-  if (newName && newName.trim().length > 0) {
-    username = newName.trim();
-    localStorage.setItem("chatName", username);
-  }
-}
-
-document.getElementById("userDisplay").innerText = "User: " + username;
-
-let room = "General";
-document.getElementById("room").onchange = (e) => {
-  room = e.target.value;
-  loadMessages();
-};
-
-function sendMsg() {
-  const text = document.getElementById("msgInput").value;
-  if (!text.trim()) return;
-
-  db.collection("chats").add({
-    name: username,
-    room: room,
-    text: text,
-    time: Date.now()
-  });
-
-  document.getElementById("msgInput").value = "";
-}
-
-function loadMessages() {
-  db.collection("chats")
-    .where("room", "==", room)
-    .orderBy("time")
-    .onSnapshot(snapshot => {
-      const chat = document.getElementById("chat");
-      chat.innerHTML = "";
-
-      snapshot.forEach(doc => {
-        const d = doc.data();
-        chat.innerHTML += `
-          <div class="msg">
-            <span class="name">${d.name}:</span> ${d.text}
-          </div>
-        `;
-      });
-
-      chat.scrollTop = chat.scrollHeight;
-    });
-}
-
-loadMessages();
-
-// Enter key send
-document.getElementById("msgInput").addEventListener("keydown", e => {
-  if (e.key === "Enter") sendMsg();
-});
-</script>
+<script src="script.js"></script>
 
 </body>
 </html>
+
