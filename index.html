@@ -1,29 +1,29 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Simple Chat</title>
-  <style>
-    body { font-family: Arial; margin: 0; background: #111; color: white; }
-    #top { padding: 10px; background: #222; display: flex; gap: 10px; }
-    select, input, button { padding: 8px; }
-    #chat { height: 80vh; overflow-y: auto; padding: 10px; }
-    .msg { margin: 5px 0; }
-    .user { color: #4af; }
-  </style>
+  <title>Triple Chat</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div id="top">
+<div id="topbar">
   <select id="room">
     <option value="general">General</option>
     <option value="school">School</option>
   </select>
 
-  <input id="msgInput" placeholder="Type message..." />
-  <button onclick="sendMsg()">Send</button>
+  <span id="status">● Online</span>
+
+  <button onclick="changeUsername()">Name</button>
+  <button onclick="clearRoom()">Clear</button>
 </div>
 
 <div id="chat"></div>
+
+<div id="inputBar">
+  <input id="msgInput" placeholder="Type message..." />
+  <button onclick="sendMsg()">Send</button>
+</div>
 
 <script src="script.js"></script>
 </body>
