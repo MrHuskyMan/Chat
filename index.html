@@ -101,8 +101,28 @@ let name = localStorage.getItem("chatName");
 let currentRoom = "general";
 
 function enterChat() {
-  const input = document.getElementById("nameInput").value.trim();
-  if (!input) return;
+  try {
+    const inputEl = document.getElementById("nameInput");
+    const nameValue = inputEl ? inputEl.value.trim() : "";
+
+    if (!nameValue) {
+      alert("Please enter a username");
+      return;
+    }
+
+    name = nameValue;
+    localStorage.setItem("chatName", name);
+
+    document.getElementById("login").style.display = "none";
+    document.getElementById("app").style.display = "block";
+
+    startRoom();
+
+  } catch (e) {
+    console.error("Join error:", e);
+    alert("Something broke. Check console (F12).");
+  }
+}
 
   name = input;
   localStorage.setItem("chatName", name);
