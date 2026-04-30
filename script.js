@@ -71,29 +71,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ---------------- LISTEN MESSAGES ----------------
 function listenMessages() {
-  const chat = document.getElementById("chat");
+  const ref = firebase.database().ref("messages/" + currentRoom);
 
-  // CLEAR OLD LISTENERS
-  firebase.database().ref("messages/" + currentRoom).off();
+  ref.off();
 
-  // LISTEN FOR NEW MESSAGES
-  firebase.database().ref("messages/" + currentRoom)
-    .on("child_added", (snapshot) => {
+  ref.on("child_added", (snap) => {
+    console.log("🔥 FIRED", snap.val());
 
-      const msg = snapshot.val();
+    const msg = snap.val();
 
-      console.log("NEW MESSAGE:", msg); // DEBUG LINE
+    const div = document.createElement("div");
+    div.innerText = msg.user + ": " + msg.text;
 
-      const div = document.createElement("div");
-      div.className = "msg";
-
-      div.innerHTML = `<b>${msg.user}:</b> ${msg.text}`;
-
-      chat.appendChild(div);
-      chat.scrollTop = chat.scrollHeight;
-    });
+    document.getElementById("chat").appendChild(div);
+  });
 }
-
   // ---------------- ONLINE USERS ----------------
   function setOnline() {
     db.ref("onlineUsers/" + userId).set({
