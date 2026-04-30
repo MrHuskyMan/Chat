@@ -1,4 +1,13 @@
 <!DOCTYPE html>
+
+let username = localStorage.getItem("chatName");
+
+if (!username) {
+  username = prompt("Enter a username:");
+  if (!username) username = "Guest";
+  localStorage.setItem("chatName", username);
+}
+
 <html>
 <head>
 <meta charset="utf-8">
@@ -94,8 +103,14 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 // Username (simple prompt)
-let username = prompt("Enter username:");
-if (!username) username = "Guest";
+function changeUsername() {
+  const newName = prompt("New username:", username);
+
+  if (newName && newName.trim().length > 0) {
+    username = newName.trim();
+    localStorage.setItem("chatName", username);
+  }
+}
 
 document.getElementById("userDisplay").innerText = "User: " + username;
 
