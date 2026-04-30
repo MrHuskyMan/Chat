@@ -1,92 +1,180 @@
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: #1e1f22;
-  color: white;
+// ---------------- FIREBASE ----------------
+const firebaseConfig = {
+  apiKey: "AIzaSyDbgXEyQCcb9EzWf2JDI25V29VyfSQ7Tdg",
+  authDomain: "chat-4dbb4.firebaseapp.com",
+  projectId: "chat-4dbb4",
+  storageBucket: "chat-4dbb4.firebasestorage.app",
+  messagingSenderId: "109228240521",
+  appId: "1:109228240521:web:907ed25d4f179e7a032058",
+  databaseURL: "https://chat-4dbb4-default-rtdb.firebaseio.com/"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ---------------- USER ----------------
+let username = localStorage.getItem("chatName");
+if (!username) {
+  username = prompt("Enter username:");
+  if (!username) username = "Guest";
+  localStorage.setItem("chatName", username);
 }
 
-#top {
-  display: flex;
-  gap: 8px;
-  padding: 10px;
-  background: #2b2d31;
-  border-bottom: 1px solid #111;
+let userId = localStorage.getItem("chatId");
+if (!userId) {
+  userId = Math.random().toString(36).substring(2, 10);
+  localStorage.setItem("chatId", userId);
 }
 
-button {
-  background: #40444b;
-  color: white;
-  border: none;
-  padding: 6px 10px;
-  border-radius: 6px;
-  cursor: pointer;
+function changeUsername() {
+  const n = prompt("New name:", username);
+  if (n && n.trim()) {
+    username = n.trim();
+    localStorage.setItem("chatName", username);
+  }
 }
 
-button:hover {
-  background: #4e525a;
+// ---------------- ROOMS ----------------
+let currentRoom = "general";
+let lastSeenRoom = "general";
+const unread = { general: 0, school: 0 };
+const userColors = {};
+
+function switchRoom(room) {
+  currentRoom = room;
+  lastSeenRoom = room;
+  unread[room] = 0;
+  document.getElementById("chat").innerHTML = "";
+  listenMessages();
 }
 
-#layout {
-  display: flex;
-  height: calc(100vh - 50px);
+// ---------------- COLORS ----------------
+function getColor(id) {
+  if (userColors[id]) return userColors[id];
+  const colors = ["#00a8ff","#ff6b6b","#1dd1a1","#feca57","#a29bfe"];
+  userColors[id] = colors[Math.floor(Math.random()*colors.length)];
+  return userColors[id];
 }
 
-#sidebar {
-  width: 180px;
-  background: #2b2d31;
-  padding: 10px;
-  border-right: 1px solid #111;
-  font-size: 13px;
-  color: #bbb;
+// ---------------- SEND ----------------
+function sendMessage() {
+  const input = document.getElementById("messageInput");
+  const text = input.value.trim();
+  if (!text) return;
+
+  const ref = db.ref("messages/" + currentRoom).push();
+
+  ref.set({
+    id: ref.key,
+    user: username,
+    userId: userId,
+    text,
+    time: Date.now()
+  });
+
+  input.value = "";
 }
 
-#chatContainer {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
+// ---------------- MESSAGES ----------------
+function listenMessages() {
+  const chat = document.getElementById("chat");
+
+  db.ref("messages/" + currentRoom).off();
+
+  db.ref("messages/" + currentRoom).on("child_added", snap => {
+    const msg = snap.val();
+
+    const div = document.createElement("div");
+    div.className = "msg";
+    if (msg.userId === userId) div.classList.add("own");
+
+    const color = getColor(msg.userId);
+    const time = new Date(msg.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+
+    div.innerHTML = `
+      <b style="color:${color}">${msg.user}</b>
+      <span style="font-size:10px;color:#aaa"> ${time}</span>
+      <div>${msg.text}</div>
+      <div style="font-size:12px;margin-top:4px;">
+        <span onclick="react('${msg.id}','👍')">👍</span>
+        <span onclick="react('${msg.id}','😂')">😂</span>
+        <span onclick="react('${msg.id}','❤️')">❤️</span>
+      </div>
+    `;
+
+    setTimeout(() => {
+      div.style.transition = "0.2s";
+      div.style.opacity = 1;
+      div.style.transform = "translateY(0)";
+    }, 10);
+
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+
+    if (currentRoom !== lastSeenRoom) {
+      unread[currentRoom]++;
+    }
+  });
 }
 
-#chat {
-  flex: 1;
-  overflow-y: auto;
-  padding: 12px;
+// ---------------- REACTIONS ----------------
+function react(id, emoji) {
+  db.ref(`reactions/${currentRoom}/${id}/${userId}`).set(emoji);
 }
 
-.msg {
-  background: #2b2d31;
-  padding: 8px;
-  border-radius: 8px;
-  margin-bottom: 8px;
-  max-width: 70%;
-  word-wrap: break-word;
-  opacity: 0;
-  transform: translateY(5px);
+// ---------------- ONLINE USERS ----------------
+function setOnline() {
+  db.ref("onlineUsers/" + userId).set({
+    name: username,
+    time: Date.now()
+  });
 }
 
-.msg.own {
-  margin-left: auto;
-  background: #3a3d45;
-}
+setOnline();
+setInterval(setOnline, 5000);
+db.ref("onlineUsers/" + userId).onDisconnect().remove();
 
-#typing {
-  font-size: 12px;
-  color: #aaa;
-  padding: 4px 10px;
-}
+db.ref("onlineUsers").on("value", snap => {
+  let out = "";
+  snap.forEach(u => out += u.val().name + "<br>");
+  document.getElementById("users").innerHTML = out;
+});
 
-#inputArea {
-  display: flex;
-  padding: 10px;
-  background: #2b2d31;
-  border-top: 1px solid #111;
-}
+// ---------------- TYPING ----------------
+const input = document.getElementById("messageInput");
+let typingTimeout;
 
-#messageInput {
-  flex: 1;
-  padding: 10px;
-  border: none;
-  outline: none;
-  background: #40444b;
-  color: white;
-  border-radius: 6px;
-}
+input.addEventListener("input", () => {
+  db.ref(`typing/${currentRoom}/${userId}`).set({
+    name: username,
+    typing: true
+  });
+
+  clearTimeout(typingTimeout);
+  typingTimeout = setTimeout(() => {
+    db.ref(`typing/${currentRoom}/${userId}`).remove();
+  }, 1000);
+});
+
+db.ref("typing/" + currentRoom).on("value", snap => {
+  let users = [];
+  snap.forEach(u => {
+    const v = u.val();
+    if (v.name !== username) users.push(v.name);
+  });
+
+  document.getElementById("typing").innerText =
+    users.length ? users.join(", ") + " is typing..." : "";
+});
+
+// ---------------- UNREAD UI ----------------
+setInterval(() => {
+  document.getElementById("unread-general").innerText =
+    unread.general ? `(${unread.general})` : "";
+
+  document.getElementById("unread-school").innerText =
+    unread.school ? `(${unread.school})` : "";
+}, 500);
+
+// ---------------- START ----------------
+listenMessages();
