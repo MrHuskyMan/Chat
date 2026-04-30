@@ -70,27 +70,29 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // ---------------- LISTEN MESSAGES ----------------
-  function listenMessages() {
+function listenMessages() {
+  const chat = document.getElementById("chat");
 
-    db.ref("messages/" + currentRoom).off();
+  // CLEAR OLD LISTENERS
+  firebase.database().ref("messages/" + currentRoom).off();
 
-    db.ref("messages/" + currentRoom).on("child_added", snap => {
-      const msg = snap.val();
+  // LISTEN FOR NEW MESSAGES
+  firebase.database().ref("messages/" + currentRoom)
+    .on("child_added", (snapshot) => {
+
+      const msg = snapshot.val();
+
+      console.log("NEW MESSAGE:", msg); // DEBUG LINE
 
       const div = document.createElement("div");
       div.className = "msg";
-      if (msg.userId === userId) div.classList.add("own");
 
-      div.innerHTML = `<b>${msg.user}</b><div>${msg.text}</div>`;
+      div.innerHTML = `<b>${msg.user}:</b> ${msg.text}`;
 
       chat.appendChild(div);
       chat.scrollTop = chat.scrollHeight;
-
-      if (currentRoom !== "general") {
-        unread[currentRoom]++;
-      }
     });
-  }
+}
 
   // ---------------- ONLINE USERS ----------------
   function setOnline() {
