@@ -1,73 +1,73 @@
-// ===== Username System =====
+// ===== Identity =====
 let username = localStorage.getItem("chatName");
+let userId = localStorage.getItem("chatId");
 
-function setUsername() {
-  const input = prompt("Enter a username:");
-  if (input && input.trim().length > 0) {
-    username = input.trim();
-    localStorage.setItem("chatName", username);
-  } else {
-    username = "Guest";
-    localStorage.setItem("chatName", username);
-  }
+if (!userId) {
+  userId = crypto.randomUUID();
+  localStorage.setItem("chatId", userId);
 }
 
-// If no username exists, ask once
-if (!username) {
-  setUsername();
-}
+if (!username) setUsername();
 
-// ===== Setup =====
+// ===== System =====
 const chatBox = document.getElementById("chat");
 const roomSelect = document.getElementById("room");
 const input = document.getElementById("msgInput");
+const channel = new BroadcastChannel("chat_app");
 
-// BroadcastChannel (sync between tabs)
-channel.onmessage = (event) => {
-  const { room, msg } = event.data;
+// ===== Username =====
+function setUsername() {
+  const name = prompt("Enter username:");
+  username = (name && name.trim()) ? name.trim() : "Guest";
+  localStorage.setItem("chatName", username);
+}
 
-  // ONLY add if it doesn't already exist
-  const msgs = JSON.parse(localStorage.getItem(room) || "[]");
+function changeUsername() {
+  setUsername();
+}
 
-  const alreadyExists = msgs.some(m =>
-    m.user === msg.user &&
-    m.text === msg.text &&
-    m.time === msg.time
-  );
-
-  if (!alreadyExists) {
-    msgs.push(msg);
-    localStorage.setItem(room, JSON.stringify(msgs));
+// ===== Color system (deterministic per userId) =====
+function colorFromId(id) {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = id.charCodeAt(i) + ((hash << 5) - hash);
   }
+  return `hsl(${hash % 360}, 70%, 60%)`;
+}
 
-  if (room === roomSelect.value) {
-    loadMessages(room);
-  }
-};
+// ===== Storage =====
+function getMessages(room) {
+  return JSON.parse(localStorage.getItem(room) || "[]");
+}
 
-// Load messages
+function saveMessages(room, msgs) {
+  localStorage.setItem(room, JSON.stringify(msgs));
+}
+
+// ===== Render =====
 function loadMessages(room) {
   chatBox.innerHTML = "";
-  const msgs = JSON.parse(localStorage.getItem(room) || "[]");
+  const msgs = getMessages(room);
 
   msgs.forEach(m => {
     const div = document.createElement("div");
     div.className = "msg";
-    div.innerHTML = `<span class="user">${m.user}:</span> ${m.text}`;
+
+    const color = colorFromId(m.userId);
+
+    div.innerHTML = `
+      <span class="user" style="color:${color}">
+        ${m.user}
+      </span>: ${m.text}
+    `;
+
     chatBox.appendChild(div);
   });
 
   chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-// Save message
-function saveMessage(room, msg) {
-  const msgs = JSON.parse(localStorage.getItem(room) || "[]");
-  msgs.push(msg);
-  localStorage.setItem(room, JSON.stringify(msgs));
-}
-
-// Send message
+// ===== Send =====
 function sendMsg() {
   const text = input.value.trim();
   if (!text) return;
@@ -75,37 +75,69 @@ function sendMsg() {
   const room = roomSelect.value;
 
   const msg = {
-    user: username,
-    text: text,
+    user,
+    userId,
+    text,
     time: Date.now()
   };
 
-  saveMessage(room, msg);
+  const msgs = getMessages(room);
+  msgs.push(msg);
+  saveMessages(room, msgs);
+
   channel.postMessage({ room, msg });
 
   input.value = "";
   loadMessages(room);
 }
 
-// Room switching
-roomSelect.addEventListener("change", () => {
-  loadMessages(roomSelect.value);
-});
+// ===== Clear room =====
+function clearRoom() {
+  const room = roomSelect.value;
+  localStorage.removeItem(room);
+  loadMessages(room);
+}
 
-// Receive messages from other tabs
+// ===== Sync (NO DUPLICATES FIXED) =====
 channel.onmessage = (event) => {
   const { room, msg } = event.data;
-  saveMessage(room, msg);
+
+  const msgs = getMessages(room);
+
+  const exists = msgs.some(m =>
+    m.userId === msg.userId &&
+    m.text === msg.text &&
+    m.time === msg.time
+  );
+
+  if (!exists) {
+    msgs.push(msg);
+    saveMessages(room, msgs);
+  }
 
   if (room === roomSelect.value) {
     loadMessages(room);
   }
 };
 
-// Enter key send
+// ===== Room switching =====
+roomSelect.addEventListener("change", () => {
+  loadMessages(roomSelect.value);
+});
+
+// ===== Enter key =====
 input.addEventListener("keydown", (e) => {
   if (e.key === "Enter") sendMsg();
 });
 
-// Initial load
+// ===== Status indicator =====
+window.addEventListener("focus", () => {
+  document.getElementById("status").textContent = "● Online";
+});
+
+window.addEventListener("blur", () => {
+  document.getElementById("status").textContent = "● Away";
+});
+
+// ===== Init =====
 loadMessages("general");
