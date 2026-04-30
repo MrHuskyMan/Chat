@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Simple Username Chat</title>
+
+  <style>
+    body {
+      font-family: Arial;
+      background: #1e1f22;
+      color: white;
+      margin: 0;
+    }
+
+    #chat {
+      height: 85vh;
+      overflow-y: auto;
+      padding: 10px;
+      background: #2b2d31;
+    }
+
+    .msg {
+      margin: 6px 0;
+      padding: 6px;
+      background: #3a3d45;
+      border-radius: 6px;
+    }
+
+    #bar {
+      display: flex;
+      padding: 10px;
+      background: #2b2d31;
+    }
+
+    input {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      outline: none;
+    }
+
+    button {
+      padding: 10px;
+      margin-left: 5px;
+    }
+
+    #users {
+      font-size: 12px;
+      color: #aaa;
+      padding: 5px 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div id="users">Users: </div>
+<div id="chat"></div>
+
+<div id="bar">
+  <input id="msg" placeholder="Message..." />
+  <button onclick="send()">Send</button>
+</div>
+
+<script>
+let username = localStorage.getItem("name");
+
+if (!username) {
+  username = prompt("Enter username:");
+  if (!username) username = "Guest";
+  localStorage.setItem("name", username);
+}
+
+// realtime channel between tabs
+const channel = new BroadcastChannel("chatroom");
+
+let chat = document.getElementById("chat");
+let usersBox = document.getElementById("users");
+
+// track users locally
+let users = new Set();
+users.add(username);
+updateUsers();
+
+function updateUsers() {
+  usersBox.innerText = "Users: " + Array.from(users).join(", ");
+}
+
+// receive messages
+channel.onmessage = (e) => {
+  const data = e.data;
+
+  if (data.type === "msg") {
+    let div = document.createElement("div");
+    div.className = "msg";
+    div.innerHTML = `<b>${data.user}</b>: ${data.text}`;
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  if (data.type === "join") {
+    users.add(data.user);
+    updateUsers();
+  }
+};
+
+// announce join
+channel.postMessage({ type: "join", user: username });
+
+// send message
+function send() {
+  let input = document.getElementById("msg");
+  let text = input.value.trim();
+  if (!text) return;
+
+  channel.postMessage({
+    type: "msg",
+    user: username,
+    text: text
+  });
+
+  input.value = "";
+}
+</script>
+
+</body>
+</html>
